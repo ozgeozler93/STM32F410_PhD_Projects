@@ -20,6 +20,8 @@
 #include "main.h"
 #include "usart.h"
 #include "gpio.h"
+#include <string.h>
+#include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -155,19 +157,21 @@ void SystemClock_Config(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  if(GPIO_Pin == GPIO_PIN_13) // Eğer olay PC13 (mavi buton) üzerindeyse
+  if(GPIO_Pin == GPIO_PIN_13)
   {
-    // Butonun fiziksel durumunu oku
+    char *msg;
     if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET)
     {
-      // Buton BASILI (Logic 0) -> LED'i yak
       HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+      msg = "Buton BASILDI!\r\n";
     }
     else
     {
-      // Buton BIRAKILDI (Logic 1) -> LED'i söndür
       HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+      msg = "Buton BIRAKILDI!\r\n";
     }
+    // huart2: Nucleo'da ST-Link üzerinden PC'ye bağlı olan UART birimi
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
   }
 }
 
