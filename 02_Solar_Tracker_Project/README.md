@@ -46,10 +46,51 @@ Hangi pinleri kullanacağını netleştirmen lazım.
 | GPIO | Status LEDs | System Heartbeat (LD2 - PA5 hariç, senin düzeltmene göre!) |
 
 # Milestone 2: System Design (UML & Task Prioritization)
-**Görev:** Diyagramları .png olarak kaydet ve PlantUML klasörüne at. RTOS Önceliklendirmesini yap.
-1. Control Task (High): Motorların hızlı tepki vermesi için.
-2. Sensing Task (Medium): Veri okuma.
-3. Telemetry Task (Low): Buluta veri gönderme (İnternet yavaştır, sistemi bekletmesin).
+
+1. **Hardware** Architecture (Donanım Mimarisi) 
+    Sistemin fiziksel katmanı, STM32F410RB merkezli bir yıldız topolojisidir.
+
+    i. Sensing Layer: 4 adet LDR, voltaj bölücü (voltage divider) devresi üzerinden ADC pinlerine bağlanır.
+
+    ii. Actuator Layer: Yatay (Azimuth) ve Dikey (Elevation) eksenler için 2 adet servo motor, Timer'lar üzerinden üretilen 50Hz PWM sinyali ile kontrol edilir.
+
+    iii. Power Management: INA219, 0.1Ω şönt direnci ile yüksek taraftan (high-side) panel akımını izler.
+
+    iv. Communication: ESP8266, sistemin ana döngüsünü engellememek (non-blocking) için UART üzerinden kesme (interrupt) veya DMA tabanlı haberleşme ile yönetilir.
+
+2. **Software Architecture (Yazılım Mimarisi)** 
+
+    Sistem, FreeRTOS tabanlı çok görevli (multi-tasking) bir yapıda tasarlanmıştır. Bu mimari, sistemin ölçeklenebilirliğini ve güvenilirliğini sağlar.
+
+    2.1. FreeRTOS Task Design (Görev Dağılımı)   
+
+    | Task | Priority | Frequency | Responsibilities |
+    | --- | --- | --- | --- |
+    | vControlTask | High (3) | 20ms | Predictive Filtering uygulaması, Error hesaplama ve PWM güncelleme. |
+    | vSensingTask | Normal (2) | 100ms | ADC'den LDR değerlerini ve I2C'den INA219 verilerini okuma. |
+    | vTelemetryTask | Low (1) | 15s | Verilerin JSON formatında paketlenmesi ve ESP8266 ile ThingSpeak'e iletimi. |
+
+    2.2.Inter-Task Communication & Resource Protection  
+        
+        - Shared Resource: Sensör verileri bir global struct içinde tutulur.
+        
+        - Mutex Mechanism: vSensingTask veri yazarken ve vControlTask veri okurken veri bütünlüğünü (data integrity) korumak için Mutex kullanılacaktır. Bu, PhD seviyesindeki bir gömülü sistem projesinin olmazsa olmazıdır. 
+
+
+
+
+3. **UML Diagrams (PlantUML)** 
+    Diyagramları .png olarak kaydet ve PlantUML klasörüne at. 
+    ### **System Structure**
+    ![System Structure](./Documents/PlantUML/Activity_Diagram.png)
+
+    ### **System Activity Flow**
+    ![Activity Flow](./Documents/PlantUML/PlantUML_Kodu.png)
+
+    RTOS Önceliklendirmesini yap.
+    1. Control Task (High): Motorların hızlı tepki vermesi için.
+    2. Sensing Task (Medium): Veri okuma.
+    3. Telemetry Task (Low): Buluta veri gönderme (İnternet yavaştır, sistemi bekletmesin).
 
 # Milestone 3: Prototype Development (Drivers)
 **Görev:** STM32CubeIDE ile bir proje oluşturup .ioc dosyasında bu çevre birimlerini (I2C, ADC, PWM) aktif etmelisin.
