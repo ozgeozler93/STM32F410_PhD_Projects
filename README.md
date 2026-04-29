@@ -1,14 +1,14 @@
-# STM32F410 PhD Projects 🚀
+# STM32F410 PhD Projects 
 
 This repository documents my embedded systems research and development journey using the **NUCLEO-F410RB** (ARM Cortex-M4) development board. The goal is to master low-level hardware interaction, real-time constraints, and peripheral interfacing.
 
-## 🛠 Tech Stack
+## Tech Stack
 - **Hardware:** STM32F410RB (Nucleo-64)
 - **IDE:** STM32CubeIDE v2.1.1
 - **Configuration:** STM32CubeMX
 - **Language:** C (HAL Library)
 
-## 📈 Project Milestones
+## Project Milestones
 
 ### 1. External Interrupts (EXTI) & GPIO
 - **Objective:** Efficiently handle user input without polling the CPU.
@@ -33,12 +33,10 @@ This repository documents my embedded systems research and development journey u
 - **Implementation:** Configured **ADC1 Channel 0 (PA0)** in Continuous Conversion Mode.
 - **Outcome:** Successfully monitored real-time voltage fluctuations and floating-pin noise via UART.
 
-## 🚀 How to Run
+## How to Run
 1. Clone the repository.
 2. Open the project in **STM32CubeIDE**.
 3. Connect your **Nucleo-F410RB** via USB.
 4. Build the project (Hammer icon) and Run (Play icon).
 5. Open the IDE Console at **115200 baud** to see live logs.
 
-## 📬 Contact
-**Özge Özler** - [GitHub](https://github.com/ozgeozler93)
