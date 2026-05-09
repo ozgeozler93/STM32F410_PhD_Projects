@@ -1,0 +1,2 @@
+../Core/Src/filter.c:5:7:apply_ema_filter	1
+../Core/Src/filter.c:10:7:apply_adaptive_ema_filter	2

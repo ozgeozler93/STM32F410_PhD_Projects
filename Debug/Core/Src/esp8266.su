@@ -1,0 +1,3 @@
+../Core/Src/esp8266.c:12:6:RingBuffer_Write	24	static
+../Core/Src/esp8266.c:21:6:ESP8266_ReadBuffer	16	static
+../Core/Src/esp8266.c:31:6:ESP8266_SendCommand	16	static
