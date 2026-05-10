@@ -2,7 +2,7 @@
 #include "cmsis_os.h"
 #include <string.h>
 
-extern UART_HandleTypeDef huart2; // Kullandığınız UART portuna göre değişebilir
+extern UART_HandleTypeDef huart1; // Kullandığınız UART portuna göre değişebilir
 extern osMutexId UART_MutexHandle; // V1 formatı: osMutexId (t'siz)
 
 RingBuffer_t rxBuffer = {0};
@@ -30,7 +30,7 @@ bool ESP8266_ReadBuffer(uint8_t *data) {
 // AT Komutu Gönderme (Thread-Safe - V1 Formatı)
 void ESP8266_SendCommand(const char *cmd) {
     if (osMutexWait(UART_MutexHandle, osWaitForever) == osOK) {
-        HAL_UART_Transmit(&huart2, (uint8_t *)cmd, strlen(cmd), HAL_MAX_DELAY);
+        HAL_UART_Transmit(&huart1, (uint8_t *)cmd, strlen(cmd), HAL_MAX_DELAY);
         osMutexRelease(UART_MutexHandle);
     }
 }

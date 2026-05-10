@@ -51,7 +51,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint32_t ldr_values[4]; 		  // 4 LDR verisi burada saklanacak
+uint16_t ldr_values[4]; 		  // 4 LDR verisi burada saklanacak
 float filtered_ldr[4] = { 0 };    // Filtrelenmiş temiz veriler
 float alpha = 0.1f;               // Filtre katsayısı (0.0 ile 1.0 arası)
 uint16_t servo_h = 90; 			  // Yatay servo başlangıç açısı (90 derece)
@@ -102,15 +102,14 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_ADC1_Init();
-  MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_I2C1_Init();
   MX_IWDG_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) ldr_values, 4); //ADC1'i başlat, 4 kanalı sırayla oku ve bu değerleri ldr_values dizisine otomatik olarak yaz.
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ldr_values, 4); //ADC1'i başlat, 4 kanalı sırayla oku ve bu değerleri ldr_values dizisine otomatik olarak yaz.
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); // Yatay Servo PWM Başlat
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2); // Dikey Servo PWM Başlat
-
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
@@ -124,57 +123,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-		// 1. Yeni Adaptif Filtre Fonksiyonunu Kullan (filter.c'deki)
-		for (int i = 0; i < 4; i++) {
-			filtered_ldr[i] = apply_adaptive_ema_filter((float) ldr_values[i],
-					filtered_ldr[i]);
-		}
 
-		// 2. Gece/Gündüz Kontrolü için Toplam Işık Seviyesini Ölç
-		float total_light = filtered_ldr[0] + filtered_ldr[1] + filtered_ldr[2]
-				+ filtered_ldr[3];
-		float darkness_threshold = 800.0f; // Bu değeri karanlık odaya göre ayarlayacağız
-
-		if (total_light < darkness_threshold) {
-			// GECE MODU: Doğu'ya (Başlangıç pozisyonuna) dön ve uyu
-			servo_h = 90; // Orta nokta
-			servo_v = 90; // Orta nokta
-
-			__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, (servo_h * 10) + 500);
-			__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, (servo_v * 10) + 500);
-		} else {
-			// GÜNDÜZ MODU: Güneşi Takip Et
-			// Dikey ve Yatay Farkları Hesapla
-			float vertical_error = (filtered_ldr[0] + filtered_ldr[1])
-					- (filtered_ldr[2] + filtered_ldr[3]);
-			float horizontal_error = (filtered_ldr[0] + filtered_ldr[2])
-					- (filtered_ldr[1] + filtered_ldr[3]);
-
-			// Dikey Kontrol (Deadband: 50.0f)
-			if (abs(vertical_error) > 50.0f) {
-				if (vertical_error > 0 && servo_v < 180)
-					servo_v++;
-				else if (vertical_error < 0 && servo_v > 0)
-					servo_v--;
-
-				__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2,
-						(servo_v * 10) + 500);
-			}
-
-			// Yatay Kontrol (Deadband: 50.0f)
-			if (abs(horizontal_error) > 50.0f) {
-				if (horizontal_error > 0 && servo_h < 180)
-					servo_h++;
-				else if (horizontal_error < 0 && servo_h > 0)
-					servo_h--;
-
-				__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1,
-						(servo_h * 10) + 500);
-			}
-		}
-
-		// Motorların hareketi tamamlaması ve ADC'nin yeni veriler alması için bekleme
-		HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

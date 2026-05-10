@@ -65,7 +65,7 @@ main-build: ELE529E_SolarTracker.elf secondary-outputs
 
 # Tool invocations
 ELE529E_SolarTracker.elf ELE529E_SolarTracker.map: $(OBJS) $(USER_OBJS) /Users/makbuleozler/Desktop/Embedded_Projects/ELE529E_SolarTracker/STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ELE529E_SolarTracker.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/Users/makbuleozler/Desktop/Embedded_Projects/ELE529E_SolarTracker/STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ELE529E_SolarTracker.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "ELE529E_SolarTracker.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/Users/makbuleozler/Desktop/Embedded_Projects/ELE529E_SolarTracker/STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ELE529E_SolarTracker.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

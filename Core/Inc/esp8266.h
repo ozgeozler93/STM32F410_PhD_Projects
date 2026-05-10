@@ -4,6 +4,8 @@
 #include "stm32l4xx_hal.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include "stm32l4xx_hal.h" // HAL kütüphanesini tanıması için şart
+#include "usart.h"         // UART tanımlarını çekmesi için şart
 
 // ESP8266'dan gelecek maksimum mesaj uzunluğuna göre tampon boyutu
 #define UART_BUFFER_SIZE 256

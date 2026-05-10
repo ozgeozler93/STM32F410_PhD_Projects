@@ -194,7 +194,7 @@ extern uint8_t rxByte; // esp8266.c içindeki tek baytlık okuma değişkenimiz
 
 // UART kesmesi tetiklendiğinde bu fonksiyon otomatik çalışır
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == USART2) { // Kendi UART donanımınıza (USART2, USART1 vb.) göre ayarlayın
+    if (huart->Instance == USART1) { // Kendi UART donanımınıza ( USART1 vb.) göre ayarlayın
         // Gelen baytı dairesel tampona yaz
         RingBuffer_Write(rxByte);
 
