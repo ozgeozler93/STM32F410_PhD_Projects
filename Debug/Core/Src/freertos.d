@@ -51,8 +51,9 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h \
- ../Core/Inc/filter.h ../Core/Inc/ina219.h ../Core/Inc/esp8266.h \
- ../Core/Inc/usart.h ../Core/Inc/main.h ../Core/Inc/usart.h
+ ../Core/Inc/filter.h ../Core/Inc/ina219.h ../Core/Inc/i2c.h \
+ ../Core/Inc/main.h ../Core/Inc/esp8266.h ../Core/Inc/usart.h \
+ ../Core/Inc/usart.h
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 ../Core/Inc/FreeRTOSConfig.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h:
@@ -108,7 +109,8 @@ Core/Src/freertos.o: ../Core/Src/freertos.c \
 ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h:
 ../Core/Inc/filter.h:
 ../Core/Inc/ina219.h:
+../Core/Inc/i2c.h:
+../Core/Inc/main.h:
 ../Core/Inc/esp8266.h:
 ../Core/Inc/usart.h:
-../Core/Inc/main.h:
 ../Core/Inc/usart.h:

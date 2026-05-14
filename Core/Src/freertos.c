@@ -29,6 +29,8 @@
 #include "ina219.h"
 #include "esp8266.h"
 #include "usart.h"
+#include <string.h>
+extern IWDG_HandleTypeDef hiwdg;
 #include <stdio.h> // sprintf için
 #include <math.h> // fabs() mutlak değer fonksiyonu için eklendi
 /* USER CODE END Includes */
@@ -66,7 +68,7 @@ float system_current = 0.0f;
 extern IWDG_HandleTypeDef hiwdg;
 
 // Servo Motor Timer referansı (Örn: TIM2. Kendi konfigürasyonunuza göre değiştirin)
-extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
@@ -187,26 +189,44 @@ void StartTask02(void const * argument)
 {
   /* USER CODE BEGIN StartTask02 */
 
-	// DİKKAT: INA219 kodları I2C'yi kilitlemesin diye şimdilik yorum satırında!
-	// extern I2C_HandleTypeDef hi2c1;
-	// INA219_Init(&hi2c1);
+
+	static uint32_t counter = 0;
+	if (counter++ % 100 == 0) {
+	    char msg[] = "Task02 alive\r\n";
+	    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+	}
+
+    /* INA219 sürücüsünü bir kere aç */
+    INA219_Status_t status = INA219_Open(&hi2c1);
+    if (status != INA219_OK) {
+        /* Hata durumunda burada kal, reset beklenir (watchdog yapar) */
+        while(1) {
+            HAL_IWDG_Refresh(&hiwdg);
+            osDelay(100);
+        }
+    }
+
+
 	/* Infinite loop */
 	for (;;) {
-		// 1. Dört LDR için adaptif filtreyi uygula (GÖZLER AÇIK)
-		for (int i = 0; i < 4; i++) {
-			ldr_filtered[i] = apply_adaptive_ema_filter(
-					(float) ldr_values[i], ldr_filtered[i]);
-		}
+		// 1. Dört LDR için adaptif filtreyi uygula
+        for (int i = 0; i < 4; i++) {
+            ldr_filtered[i] = apply_adaptive_ema_filter(
+                    (float) ldr_values[i], ldr_filtered[i]);
+        }
 
-		// 2. Güç okumaları şimdilik iptal (Sensörümüz INA3221 olduğu için sonra yazacağız)
-		// system_voltage = INA219_ReadBusVoltage();
-		// system_current = INA219_ReadCurrent_mA();
+        // 2. Güç okumaları (Ioctl ile)
+//        INA219_Ioctl(INA219_IOCTL_GET_VOLTAGE, &system_voltage);
+//        INA219_Ioctl(INA219_IOCTL_GET_CURRENT, &system_current);
 
-		// 3. Hayati Adım: Sistemi resetlenmekten kurtar (Watchdog'u besle)
-		HAL_IWDG_Refresh(&hiwdg);
-
-		osDelay(50);
+        // 3. Watchdog'u besle
+        HAL_IWDG_Refresh(&hiwdg);
+        osDelay(50);
 	}
+
+	char msg[50];
+	sprintf(msg, "LDRs: %d %d %d %d\r\n", ldr_values[0], ldr_values[1], ldr_values[2], ldr_values[3]);
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
   /* USER CODE END StartTask02 */
 }
 
@@ -220,8 +240,8 @@ void StartTask03(void const * argument)
   /* USER CODE BEGIN StartTask03 */
 
 	// PWM Sinyallerini Başlat
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
 
 	// Servoların başlangıç açıları
 	uint32_t servo_pan = 1500;
@@ -263,9 +283,10 @@ void StartTask03(void const * argument)
 		if (servo_tilt < 500)
 			servo_tilt = 500;
 
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, servo_pan);
-		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, servo_tilt);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, servo_pan);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, servo_tilt);
 
+		HAL_IWDG_Refresh(&hiwdg);
 		osDelay(50);
 	}
   /* USER CODE END StartTask03 */
@@ -279,15 +300,38 @@ void StartTask03(void const * argument)
 void StartTask04(void const * argument)
 {
   /* USER CODE BEGIN StartTask04 */
+    // ESP8266 sürücüsünü aç
+//    ESP8266_Open(&huart1);   // huart1 sizin UART handle'ınız
 
-	// DİKKAT: Hafızayı (Stack) taşırıp sistemi çökerten sprintf canavarı şimdilik hapsedildi!
-	// char at_command[128];
+    // --- GEÇİCİ OLARAK YORUM SATIRI ---
+    /*
+    // Wi-Fi'ya bağlan (SSID ve şifrenizi girin)
+    struct {
+        char* ssid;
+        char* pwd;
+    } wifi = {"makbule_ozge", "MiyaMiya"};
+    ESP8266_Ioctl(ESP_IOCTL_CONNECT_WIFI, &wifi);
+
+    char url[200];
+    */
+
 	/* Infinite loop */
 	for (;;) {
-		// sprintf(at_command, "AT+CIPSEND=...\r\nGET /update?api_key=YOUR_API_KEY&field1=%.2f&field2=%.2f\r\n", system_voltage, system_current);
-		// ESP8266_SendCommand(at_command);
+        /* GEÇİCİ: Sadece watchdog besle, haberleşme yapma */
+        /*
+        // ThingSpeak'e veri göndermek için URL oluştur (sprintf'siz daha güvenli, ama idarelik)
+        snprintf(url, sizeof(url),
+                 "AT+HTTPGET=\"http://api.thingspeak.com/update?api_key=YOUR_API_KEY_DENEME&field1=%.2f&field2=%.2f\"",
+                 system_voltage, system_current);
 
-		osDelay(15000);
+        ESP8266_Ioctl(ESP_IOCTL_SEND_HTTP_GET, url);
+        */
+
+        // Watchdog'u besle
+        HAL_IWDG_Refresh(&hiwdg);
+
+        // 15 saniye bekle (ThingSpeak limiti)
+        osDelay(15000);
 	}
   /* USER CODE END StartTask04 */
 }

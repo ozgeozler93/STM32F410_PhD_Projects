@@ -1,22 +1,35 @@
 #ifndef INA219_H
 #define INA219_H
 
-#include "stm32l4xx_hal.h"
+#include "stdint.h"
+#include "i2c.h"
 
-// INA219 Varsayılan I2C Adresi (A0 ve A1 pinleri GND'ye bağlıysa)
-#define INA219_ADDRESS         (0x40 << 1)
 
-// INA219 Register Adresleri
-#define INA219_REG_CONFIG      0x00
-#define INA219_REG_SHUNTVOLTAGE 0x01
-#define INA219_REG_BUSVOLTAGE  0x02
-#define INA219_REG_POWER       0x03
-#define INA219_REG_CURRENT     0x04
-#define INA219_REG_CALIBRATION 0x05
+/* Hata kodları */
+typedef enum {
+    INA219_OK = 0,
+    INA219_ERR_PARAM,
+    INA219_ERR_I2C,
+    INA219_ERR_NOT_OPEN,
+    INA219_ERR_UNKNOWN
+} INA219_Status_t;
 
-// Fonksiyon Prototipleri
-void INA219_Init(I2C_HandleTypeDef *hi2c);
-float INA219_ReadBusVoltage(void);
-float INA219_ReadCurrent_mA(void);
+/* IOCTL komutları */
+typedef enum {
+    INA219_IOCTL_GET_VOLTAGE,   /* param: float* (Bus Voltage in Volts) */
+    INA219_IOCTL_GET_CURRENT,   /* param: float* (Current in mA) */
+    INA219_IOCTL_GET_POWER,     /* param: float* (Power in Watts) */
+    INA219_IOCTL_SET_CALIBRATION /* param: uint16_t* (calibration value) */
+} INA219_IoctlCmd_t;
 
-#endif // INA219_H
+// Açık kalacak cihaz sayısı
+#define INA219_INSTANCE_COUNT 1
+
+/* Public API */
+INA219_Status_t INA219_Open(void* vpParam);              /* vpParam = I2C_HandleTypeDef* */
+INA219_Status_t INA219_Ioctl(INA219_IoctlCmd_t eCommand, void* vpParam);
+INA219_Status_t INA219_Read(void* pvBuffer, uint32_t xBytes);    /* raw register read (advanced) */
+INA219_Status_t INA219_Write(const void* pvBuffer, uint32_t xBytes);  /* raw register write */
+INA219_Status_t INA219_Close(void* vpParam);
+
+#endif

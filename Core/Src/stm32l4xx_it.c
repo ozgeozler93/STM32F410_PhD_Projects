@@ -23,6 +23,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "esp8266.h"
+#include "usart.h"
+#include "ina219.h"
+#include <string.h>
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,7 +46,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
+extern uint8_t pc_rx_byte;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -52,6 +56,32 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+//    if (huart->Instance == USART2) {
+//        extern uint8_t pc_rx_byte;
+//        char buf[32];
+//        float val;
+//        switch(pc_rx_byte) {
+//            case 'v':
+//                INA219_Ioctl(INA219_IOCTL_GET_VOLTAGE, &val);
+//                sprintf(buf, "V=%.2fV\r\n", val);
+//                HAL_UART_Transmit(&huart2, (uint8_t*)buf, strlen(buf), 100);
+//                break;
+//            case 'c':
+//                INA219_Ioctl(INA219_IOCTL_GET_CURRENT, &val);
+//                sprintf(buf, "I=%.2fmA\r\n", val);
+//                HAL_UART_Transmit(&huart2, (uint8_t*)buf, strlen(buf), 100);
+//                break;
+//            case 'r':
+//                HAL_UART_Transmit(&huart2, (uint8_t*)"Reset\r\n", 7, 100);
+//                HAL_Delay(10);
+//                NVIC_SystemReset();
+//                break;
+//        }
+//        HAL_UART_Receive_IT(&huart2, &pc_rx_byte, 1);
+//    }
+//}
 
 /* USER CODE END 0 */
 
@@ -192,14 +222,5 @@ void TIM6_DAC_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 extern uint8_t rxByte; // esp8266.c içindeki tek baytlık okuma değişkenimiz
 
-// UART kesmesi tetiklendiğinde bu fonksiyon otomatik çalışır
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == USART1) { // Kendi UART donanımınıza ( USART1 vb.) göre ayarlayın
-        // Gelen baytı dairesel tampona yaz
-        RingBuffer_Write(rxByte);
 
-        // Bir sonraki baytı okumak için kesmeyi tekrar kur
-        HAL_UART_Receive_IT(huart, &rxByte, 1);
-    }
-}
 /* USER CODE END 1 */

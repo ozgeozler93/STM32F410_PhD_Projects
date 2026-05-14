@@ -57,6 +57,8 @@ float alpha = 0.1f;               // Filtre katsayısı (0.0 ile 1.0 arası)
 uint16_t servo_h = 90; 			  // Yatay servo başlangıç açısı (90 derece)
 uint16_t servo_v = 90; 			  // Dikey servo başlangıç açısı (90 derece)
 uint16_t ldr_raw_values[4];
+uint8_t pc_rx_byte;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -102,14 +104,16 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_ADC1_Init();
-  MX_TIM2_Init();
+  //MX_TIM2_Init();
   MX_I2C1_Init();
   MX_IWDG_Init();
   MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ldr_values, 4); //ADC1'i başlat, 4 kanalı sırayla oku ve bu değerleri ldr_values dizisine otomatik olarak yaz.
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); // Yatay Servo PWM Başlat
-	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2); // Dikey Servo PWM Başlat
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); // Yatay Servo PWM Başlat
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // Dikey Servo PWM Başlat
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in cmsis_os2.c) */

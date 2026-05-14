@@ -1,34 +1,50 @@
+// esp8266.h
+
 #ifndef ESP8266_H
 #define ESP8266_H
 
-#include "stm32l4xx_hal.h"
 #include <stdint.h>
 #include <stdbool.h>
-#include "stm32l4xx_hal.h" // HAL kütüphanesini tanıması için şart
-#include "usart.h"         // UART tanımlarını çekmesi için şart
+#include "usart.h"
 
-// ESP8266'dan gelecek maksimum mesaj uzunluğuna göre tampon boyutu
+
+/* Hata kodları */
+typedef enum {
+    ESP_OK = 0,
+    ESP_ERR_PARAM,
+    ESP_ERR_UART_TX,
+    ESP_ERR_UART_RX,
+    ESP_ERR_NOT_OPEN,
+    ESP_ERR_TIMEOUT,
+    ESP_ERR_NO_RESPONSE
+} ESP_Status_t;
+
+
+/* IOCTL komutları */
+typedef enum {
+    ESP_IOCTL_CONNECT_WIFI,      /* param: struct {char* ssid; char* pwd;} */
+    ESP_IOCTL_SEND_HTTP_GET,     /* param: char* url (ör: "http://api.thingspeak.com/update?api_key=...&field1=123") */
+    ESP_IOCTL_DISCONNECT,
+    ESP_IOCTL_GET_RESPONSE       /* param: char* buffer, max uzunluk */
+} ESP_IoctlCmd_t;
+
+
+/* Ring buffer yapısı (kullanıcı tarafından görülebilir) */
 #define UART_BUFFER_SIZE 256
-
-// Circular (Halka) Buffer Yapısı
 typedef struct {
     uint8_t buffer[UART_BUFFER_SIZE];
-    volatile uint16_t head;
-    volatile uint16_t tail;
+    uint16_t head;
+    uint16_t tail;
 } RingBuffer_t;
 
-// --- Fonksiyon Prototipleri ---
+/* Public API */
+ESP_Status_t ESP8266_Open(void* vpParam);               /* vpParam = UART_HandleTypeDef* */
+ESP_Status_t ESP8266_Ioctl(ESP_IoctlCmd_t eCommand, void* vpParam);
+ESP_Status_t ESP8266_Write(const void* pvBuffer, uint32_t xBytes);   /* raw AT command */
+ESP_Status_t ESP8266_Read(void* pvBuffer, uint32_t xBytes);          /* read from ring buffer */
+ESP_Status_t ESP8266_Close(void* vpParam);
 
-// Donanım Başlatma
-void ESP8266_Init(UART_HandleTypeDef *huart);
+/* Interrupt'tan çağrılacak (UART RX callback) */
+void ESP8266_RxCallback(uint8_t data);
 
-// Interrupt (Kesme) İçinden Çağrılacak Fonksiyon (Gelen veriyi kaydeder)
-void RingBuffer_Write(uint8_t data);
-
-// Task İçinden Çağrılacak Fonksiyon (Kaydedilen veriyi okur)
-bool ESP8266_ReadBuffer(uint8_t *data);
-
-// AT Komutu Gönderme Fonksiyonu (Mutex Korumalı)
-void ESP8266_SendCommand(const char *cmd);
-
-#endif // ESP8266_H
+#endif /* ESP8266_H */

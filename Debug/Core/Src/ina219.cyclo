@@ -1,4 +1,7 @@
-../Core/Src/ina219.c:10:6:INA219_Init	1
-../Core/Src/ina219.c:16:10:INA219_ReadRegister	2
-../Core/Src/ina219.c:34:7:INA219_ReadBusVoltage	1
-../Core/Src/ina219.c:41:7:INA219_ReadCurrent_mA	1
+../Core/Src/ina219.c:32:24:INA219_WriteRegister	3
+../Core/Src/ina219.c:49:24:INA219_ReadRegister	3
+../Core/Src/ina219.c:68:17:INA219_Open	4
+../Core/Src/ina219.c:86:17:INA219_Ioctl	10
+../Core/Src/ina219.c:128:17:INA219_Read	6
+../Core/Src/ina219.c:145:17:INA219_Write	4
+../Core/Src/ina219.c:155:17:INA219_Close	1
