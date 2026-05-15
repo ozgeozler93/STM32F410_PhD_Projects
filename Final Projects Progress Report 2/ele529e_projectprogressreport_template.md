@@ -1,15 +1,15 @@
 # **ELE529E Embedded Systems Project Progress Report**  
 
 **Course:** ELE529E Embedded Systems   
-**Submission Date:** [14/05/2026]  
+**Submission Date:** [22/05/2026]  
 
 ---
 
 ## **1. Project Overview**  
 | **Project Title**         | [Intelligent Dual-Axis Solar Tracker with Predictive Filtering] |  
 |---------------------------|---------------------|  
-| **Team Members**          | [Student 1 Name] ([Student 1 No]), [Student 2 Name] ([Student 2 No]) |   
-| **Project Start Date**    | [DD/MM/YYYY] |  
+| **Team Members**          | [Makbule Ozge Ozler] ([704252003]), [Student 2 Name] ([Student 2 No]) |   
+| **Project Start Date**    | [13/03/2026] |  
 | **Expected Completion**   | [22/05/2026] |  
 
 ---
@@ -20,7 +20,7 @@
 | **1. Requirement Analysis** | Define project scope, objectives, constraints and STM32 peripheral selection. | [20/03/2026] | ✓ |  
 | **2. System Design** | Hardware/software architecture, UML diagrams, FreeRTOS task prioritization, Resource Protection (Mutex). | [10/04/2026] | ✓ |  
 | **3. Prototype Development** | Implement core functionalities (e.g., sensor integration, Adaptive EMA Filter, Custom INA219/ESP8266 Drivers, IWDG). | [30/04/2026] | ✓ |  
-| **4. Testing & Debugging** | Unit tests, system validation, performance analysis, jitter-free validation, power consumption profiling via ThingSpeak. | [15/05/2026] | ✗ |  
+| **4. Testing & Debugging** | Unit tests, system validation, performance analysis, jitter-free validation, power consumption profiling via ThingSpeak. | [15/05/2026] | ⚠️ (Kısmen tamamlandı, ThingSpeak entegrasyonu devam ediyor) |  
 | **5. Final Demo & Report** | Final system integration on pertinax, demo video preparation, submit final report, prepare presentation. | [22/05/2026] | ✗ |  
 
 ---
@@ -33,14 +33,15 @@
 | Software Architecture | Designing the FreeRTOS state-machine, Mutex integration, and UML logic flow. | 2 weeks |  
 | Data Processing | Developing the Adaptive Exponential Moving Average (EMA) filter for noisy LDR data. | 2 weeks |  
 | Cloud Integration | Managing UART communication (Circular Buffer) for ESP8266 & ThingSpeak API. | 1 week |  
-
-
-### **Student 2: [Mehmet Furkan Kalem]**  
-| **Task** | **Responsibility** | **Estimated Time** |  
-|----------|--------------------|--------------------|  
 | Hardware Setup | STM32F410RB configuration, sensor interfacing, and LM2596S power regulation. | 2 weeks |  
 | Low-Level Drivers | Custom INA219 (I2C) and ESP8266 (UART/Interrupt) thread-safe driver development. | 1.5 weeks |  
 | System Robustness | Independent Watchdog (IWDG) configuration and hardware-level performance tuning. | 1 week |  
+
+
+### **Student 2: [Student Name]**  
+| **Task** | **Responsibility** | **Estimated Time** |  
+|----------|--------------------|--------------------|  
+
 
 ---
 
@@ -95,7 +96,8 @@ package "Software Layer (FreeRTOS)" {
 ```plantuml
 @startuml
 start
-:Initialize Peripherals (ADC-DMA, I2C, PWM, UART);\nInitialize FreeRTOS & IWDG;
+:Initialize Peripherals (ADC-DMA, I2C, PWM, UART);
+:Initialize FreeRTOS & IWDG;
 fork
   partition DataAcqTask {
     repeat
@@ -139,49 +141,45 @@ stop
 ## **7. Project Demo Setup**  
 ### **Hardware Requirements**  
 - STM32F103 Development Board  
-
 - 2x SG90/MG90S Servo Motors (Pan/Tilt axes)
-
 - 4x LDR Sensors with 10kΩ voltage dividers
-
 - ESP8266 Wi-Fi Module
-
 - INA219 High-Side DC Current Sensor
-
 - LM2596S DC-DC Step-Down Converter (For isolated servo power)
-
 - Double-sided Pertinax Board for final assembly
 
 ### **Software Requirements**  
 - STM32CubeIDE ( C Programming, HAL Libraries)  
 - FreeRTOS (CMSIS-V1/V2 RTOS integration)  
 - ThingSpeak Dashboard (Cloud Data Visualization)  
+- Serial terminal (screen / CoolTerm)   
 
 ### **Demo Steps**  
-1. Power on the system.  
+1. Power on the system  
 2. Verify sensor data streaming (UART debug terminal).  
 3. Trigger real-time control task (e.g., PID response).  
 4. Monitor power consumption (if applicable).  
 5. System Startup: Power is applied. The system initializes Mutexes, IWDG, and moves servos to their calibrated home position.
 
 6. Robust Light Tracking: A flashlight is moved across the LDRs. The Adaptive EMA filter ignores sudden shadows while smoothly tracking the primary light source without servo jitter.
-
+   
 7. Data Monitoring: Instantaneous current and voltage data are retrieved via thread-safe I2C and exported to the ThingSpeak Dashboard.
-
+   
 8. Failure Scenario (Fault Recovery): A simulated infinite loop is introduced; the IWDG resets the STM32 to demonstrate industrial-grade fault tolerance.
 
 ---
 
 ## **8. Risks & Mitigation**  
-| **Risk** | **Probability** | **Impact** | **Mitigation Strategy** |  
-|----------|----------------|------------|-------------------------|  
-| Sensor Noise | Medium | High | Implement Kalman Filter |  
-| RTOS Stack Overflow | Low | Critical | Use `uxTaskGetStackHighWaterMark()` |  
-| DMA Cache Coherency | High | Medium | Use `SCB_CleanDCache()` |  
-| Data Corruption on Shared Buses | High | Critical | Implemented osMutexWait/Release for thread-safe I2C and UART operations. |  
-| Servo Jitter / Mechanical Noise | High | Medium | Developed an Adaptive EMA Filter and Dead-band logic to ignore minor variance. |  
-| MCU Freeze / Wi-Fi Timeout | Medium | Critical | Activated Independent Watchdog (IWDG) to auto-reset the system upon failure. |  
-| Power Spikes from Servos | Medium | High | Isolated servo power lines using LM2596S regulator with common ground to STM32. |  
+| **Risk** | **Probability** | **Impact** | **Mitigation Strategy** |**Status**|  
+|----------|----------------|------------|-------------------------|--------------------|  
+| Sensor Noise | Medium | High | Adaptive EMA filter + dead-band | Implemented |  
+| RTOS Stack Overflow | Low | Critical | Use `uxTaskGetStackHighWaterMark()` |Tested|  
+| DMA Cache Coherency | High | Medium | Use `SCB_CleanDCache()` | |  
+| Data Corruption on Shared Buses | High | Critical | Implemented osMutexWait/Release for thread-safe I2C and UART operations. |Implemented |  
+| Servo Jitter / Mechanical Noise | High | Medium | Developed an Adaptive EMA Filter and Dead-band logic to ignore minor variance. | Implemented |  
+| MCU Freeze / Wi-Fi Timeout | Medium | Critical | Activated Independent Watchdog (IWDG) to auto-reset the system upon failure. | Tested |  
+| Power Spikes from Servos | Medium | High | Isolated servo power lines using LM2596S regulator with common ground to STM32. | Hardware |  
+| Wi-Fi Timeout | Medium | Low | Retry logic (planned) | In progress |  
 ---
 
 ## **9. Conclusion**  
@@ -190,17 +188,32 @@ This report outlines the planned development of **Intelligent Dual-Axis Solar Tr
 ✔ Key milestones with deadlines.  
 ✔ Quality assurance strategies.  
 ✔ UML diagrams for system design.  
-✔ Implementation of custom, thread-safe hardware drivers.  
+✔ Implementation of custom, thread-safe hardware drivers(INA219, ESP8266).  
 ✔ Integration of FreeRTOS with Mutex resource protection.  
 ✔ High system robustness via IWDG fault recovery mechanisms.  
 ✔ Advanced sensor noise reduction using an Adaptive EMA algorithm.  
-**Next Steps**: Transitioning from the breadboard prototype to the final soldered pertinax board and conducting long-term power efficiency profiling.  
+
+
+**Completed Features:** 
+
+- Full FreeRTOS task structure (DataAcq, Control, Comm)
+- Thread-safe INA219 driver (Open/Ioctl/Read/Write model)
+- Thread-safe ESP8266 driver with ring buffer and interrupt callback
+- Adaptive EMA filter and dead-band servo control
+- IWDG refresh in all tasks (system reset on hang)
+- LDR reading via ADC-DMA (4 channels)
+- Servo control via TIM3 PWM (PA6, PA7)
+- UART debug output (USART2 Ready!, Task02 alive, etc.)
+- GitHub repository with all source code and documentation
+
+**Next Steps**: Transitioning from the breadboard prototype to the final soldered pertinax board. Conducting long-term power efficiency profiling. Completing ThingSpeak integration (ESP8266 HTTP GET – partial). Recording final demo video recording. Preparing final report write-up and poster.   
 
 --- 
 
 **Appendices**  
-- [A] Datasheets (STM32F103, Sensors)  
+- [A] Datasheets (STM32L476RG, INA219, ESP8266, SG90)  
 - [B] GitHub Repository Link https://github.com/ozgeozler93/STM32F410_PhD_Projects/tree/main/02_Solar_Tracker_Project  
 - [C] Meeting Minutes (Weekly Updates)  
+- [D] Demo video (to be uploaded)
 
 --- 
