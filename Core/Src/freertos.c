@@ -71,12 +71,15 @@ extern IWDG_HandleTypeDef hiwdg;
 extern TIM_HandleTypeDef htim3;
 
 /* USER CODE END Variables */
+
+// Veri güvenliği için Mutex handle'ları
 osThreadId defaultTaskHandle;
 osThreadId DataAcqTaskHandle;
 osThreadId ControlTaskHandle;
 osThreadId CommTaskHandle;
 osMutexId I2C_MutexHandle;
 osMutexId UART_MutexHandle;
+osMutexId LDR_Data_MutexHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -123,6 +126,10 @@ void MX_FREERTOS_Init(void) {
   /* definition and creation of UART_Mutex */
   osMutexDef(UART_Mutex);
   UART_MutexHandle = osMutexCreate(osMutex(UART_Mutex));
+
+  /* definition and creation of LDR_Data_Mutex */
+  osMutexDef(LDR_Data_Mutex);
+  LDR_Data_MutexHandle = osMutexCreate(osMutex(LDR_Data_Mutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
 	/* add mutexes, ... */
@@ -175,7 +182,14 @@ void StartDefaultTask(void const * argument)
   /* USER CODE BEGIN StartDefaultTask */
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1);
+		// Tüm tasklar "hayattayım" bayrağı gönderdi mi kontrolü yapılabilir.
+		// Şimdilik en azından tek bir güvenilir noktadan besleyin:
+		HAL_IWDG_Refresh(&hiwdg);
+
+		// Memory Optimization: Stack kullanımını izle (Hoca'nın istediği analiz)
+		// uint32_t freeStack = uxTaskGetStackHighWaterMark(DataAcqTaskHandle);
+
+		osDelay(100);
 	}
   /* USER CODE END StartDefaultTask */
 }
@@ -190,43 +204,35 @@ void StartTask02(void const * argument)
   /* USER CODE BEGIN StartTask02 */
 
 
-	static uint32_t counter = 0;
-	if (counter++ % 100 == 0) {
-	    char msg[] = "Task02 alive\r\n";
-	    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
-	}
-
-    /* INA219 sürücüsünü bir kere aç */
-    INA219_Status_t status = INA219_Open(&hi2c1);
-    if (status != INA219_OK) {
-        /* Hata durumunda burada kal, reset beklenir (watchdog yapar) */
-        while(1) {
-            HAL_IWDG_Refresh(&hiwdg);
-            osDelay(100);
-        }
+    static uint32_t counter = 0;
+    if (counter++ % 100 == 0) {
+        char msg[] = "Task02 alive\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
     }
 
+    static int test_val = 0;
 
+    INA219_Open(&hi2c1);
 	/* Infinite loop */
 	for (;;) {
-		// 1. Dört LDR için adaptif filtreyi uygula
-        for (int i = 0; i < 4; i++) {
-            ldr_filtered[i] = apply_adaptive_ema_filter(
-                    (float) ldr_values[i], ldr_filtered[i]);
-        }
+		// 1. I2C Okuması (Güneş Paneli Voltajı)
+		    if (osMutexWait(I2C_MutexHandle, 10) == osOK) {
+		        // Senin sürücün IOCTL kullanıyor:
+		        INA219_Ioctl(INA219_IOCTL_GET_VOLTAGE, &system_voltage);
+		        osMutexRelease(I2C_MutexHandle);
+		    }
 
-        // 2. Güç okumaları (Ioctl ile)
-//        INA219_Ioctl(INA219_IOCTL_GET_VOLTAGE, &system_voltage);
-//        INA219_Ioctl(INA219_IOCTL_GET_CURRENT, &system_current);
-
-        // 3. Watchdog'u besle
-        HAL_IWDG_Refresh(&hiwdg);
-        osDelay(50);
+		    // 2. LDR Veri İşleme
+		    if (osMutexWait(LDR_Data_MutexHandle, 10) == osOK) {
+		        for (int i = 0; i < 4; i++) {
+		            ldr_filtered[i] = apply_adaptive_ema_filter((float)ldr_values[i], ldr_filtered[i]);
+		        }
+		        osMutexRelease(LDR_Data_MutexHandle);
+		    }
+		    osDelay(50);
 	}
 
-	char msg[50];
-	sprintf(msg, "LDRs: %d %d %d %d\r\n", ldr_values[0], ldr_values[1], ldr_values[2], ldr_values[3]);
-	HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+
   /* USER CODE END StartTask02 */
 }
 
@@ -252,10 +258,19 @@ void StartTask03(void const * argument)
 
 	/* Infinite loop */
 	for (;;) {
-		float top_avg = (ldr_filtered[0] + ldr_filtered[1]) / 2.0f;
-		float bot_avg = (ldr_filtered[2] + ldr_filtered[3]) / 2.0f;
-		float left_avg = (ldr_filtered[0] + ldr_filtered[2]) / 2.0f;
-		float right_avg = (ldr_filtered[1] + ldr_filtered[3]) / 2.0f;
+		float local_ldr[4];
+
+		// RESOURCE PROTECTION: Okuma yaparken kilitle
+		if (osMutexWait(LDR_Data_MutexHandle, 10) == osOK) {
+			memcpy(local_ldr, ldr_filtered, sizeof(ldr_filtered));
+			osMutexRelease(LDR_Data_MutexHandle);
+		}
+
+
+		float top_avg   = (local_ldr[0] + local_ldr[1]) / 2.0f;
+		float bot_avg   = (local_ldr[2] + local_ldr[3]) / 2.0f;
+		float left_avg  = (local_ldr[0] + local_ldr[2]) / 2.0f;
+		float right_avg = (local_ldr[1] + local_ldr[3]) / 2.0f;
 
 		float err_tilt = top_avg - bot_avg;
 		float err_pan = left_avg - right_avg;
@@ -286,7 +301,8 @@ void StartTask03(void const * argument)
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, servo_pan);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, servo_tilt);
 
-		HAL_IWDG_Refresh(&hiwdg);
+//        // Watchdog besle
+//        HAL_IWDG_Refresh(&hiwdg);
 		osDelay(50);
 	}
   /* USER CODE END StartTask03 */
@@ -300,38 +316,42 @@ void StartTask03(void const * argument)
 void StartTask04(void const * argument)
 {
   /* USER CODE BEGIN StartTask04 */
-    // ESP8266 sürücüsünü aç
-//    ESP8266_Open(&huart1);   // huart1 sizin UART handle'ınız
 
-    // --- GEÇİCİ OLARAK YORUM SATIRI ---
-    /*
-    // Wi-Fi'ya bağlan (SSID ve şifrenizi girin)
-    struct {
-        char* ssid;
-        char* pwd;
-    } wifi = {"makbule_ozge", "MiyaMiya"};
-    ESP8266_Ioctl(ESP_IOCTL_CONNECT_WIFI, &wifi);
-
-    char url[200];
-    */
+	uint8_t tx_buf[12]; // [Header, L1_High, L1_Low, ..., Checksum, Footer]
+	tx_buf[0] = 0xAA;    // Start Byte
+	tx_buf[11] = 0x55;   // End Byte
 
 	/* Infinite loop */
 	for (;;) {
-        /* GEÇİCİ: Sadece watchdog besle, haberleşme yapma */
-        /*
-        // ThingSpeak'e veri göndermek için URL oluştur (sprintf'siz daha güvenli, ama idarelik)
-        snprintf(url, sizeof(url),
-                 "AT+HTTPGET=\"http://api.thingspeak.com/update?api_key=YOUR_API_KEY_DENEME&field1=%.2f&field2=%.2f\"",
-                 system_voltage, system_current);
+		// Protokol oluşturma
+		// RESOURCE PROTECTION: ldr_filtered verisini okumadan önce kilitle
+		    if (osMutexWait(LDR_Data_MutexHandle, 10) == osOK) {
 
-        ESP8266_Ioctl(ESP_IOCTL_SEND_HTTP_GET, url);
-        */
+		        // LDR1
+		        tx_buf[1] = (uint8_t)((uint16_t)ldr_filtered[0] >> 8);
+		        tx_buf[2] = (uint8_t)((uint16_t)ldr_filtered[0] & 0xFF);
+		        // LDR2
+		        tx_buf[3] = (uint8_t)((uint16_t)ldr_filtered[1] >> 8);
+		        tx_buf[4] = (uint8_t)((uint16_t)ldr_filtered[1] & 0xFF);
+		        // LDR3
+		        tx_buf[5] = (uint8_t)((uint16_t)ldr_filtered[2] >> 8);
+		        tx_buf[6] = (uint8_t)((uint16_t)ldr_filtered[2] & 0xFF);
+		        // LDR4
+		        tx_buf[7] = (uint8_t)((uint16_t)ldr_filtered[3] >> 8);
+		        tx_buf[8] = (uint8_t)((uint16_t)ldr_filtered[3] & 0xFF);
 
-        // Watchdog'u besle
-        HAL_IWDG_Refresh(&hiwdg);
+		        // İşlem bitti, Mutex'i hemen serbest bırak
+		        osMutexRelease(LDR_Data_MutexHandle);
+		    }
+	// Basit bir Checksum ekle (Hoca'nın "detaylandırılmalı" dediği kısım)
+	uint8_t checksum = 0;
+	for(int i=1; i<9; i++) checksum += tx_buf[i];
+	tx_buf[10] = checksum;
 
-        // 15 saniye bekle (ThingSpeak limiti)
-        osDelay(15000);
+	// Veriyi UART üzerinden gönder
+	HAL_UART_Transmit(&huart2, tx_buf, 12, 100);
+
+	osDelay(100); // 10Hz haberleşme hızı
 	}
   /* USER CODE END StartTask04 */
 }

@@ -59,6 +59,9 @@ uint16_t servo_v = 90; 			  // Dikey servo başlangıç açısı (90 derece)
 uint16_t ldr_raw_values[4];
 uint8_t pc_rx_byte;
 
+extern float system_voltage;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,7 +107,7 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_ADC1_Init();
-  //MX_TIM2_Init();
+  MX_TIM2_Init();
   MX_I2C1_Init();
   MX_IWDG_Init();
   MX_USART1_UART_Init();
